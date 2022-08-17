@@ -1,0 +1,407 @@
+---
+title: "Multiome Analysis with Celltype"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+
+```{r,echo=F,message=F,warning=F}
+library(Seurat)
+library(Signac)
+library(EnsDb.Hsapiens.v86)
+library(dplyr)
+library(ggplot2)
+library(Matrix)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(stringr)
+library(gridExtra)
+library(grid)
+library(knitr)
+library(data.table)
+library(yaml)
+library(config)
+
+config = yaml.load_file("config.yml")
+Sys.setenv(R_CONFIG_ACTIVE = "default")
+dir_final = config::get("dir_final")
+test_option2 = config::get("test_option2")
+VOI = config::get("VOI")
+adjust.cov2 = config::get("adjust.cov2")
+cond1 = config::get("cond1")
+cond2 = config::get("cond2")
+output_dir = config::get("output_dir")
+```
+
+```{r,echo=F,message=F,warning=F}
+SSc.gene.multiome.seurat.filtered<-readRDS(dir_final)
+adjust.cov2 <- unlist(strsplit(adjust.cov2, ","))
+```
+
+
+## marker genes for comparison between different conditions of each cell type (Type Two)
+
+### SCT assay
+
+```{r,echo=F,message=F,warning=F,fig.height=26, fig.width=32}
+DefaultAssay(SSc.gene.multiome.seurat.filtered) <- "SCT"
+
+eval(parse(text = paste(
+    "SSc.gene.multiome.seurat.filtered$cell.type_",
+    VOI,
+    " <- ",
+    "paste(SSc.gene.multiome.seurat.filtered$",
+    VOI,
+    ",SSc.gene.multiome.seurat.filtered$cell.type,sep='__')",
+    sep = ""
+  )
+))
+
+eval(parse(text = paste(
+    "Idents(SSc.gene.multiome.seurat.filtered) <- SSc.gene.multiome.seurat.filtered$cell.type_",
+    VOI,
+    sep = ""
+  )
+))
+
+print(paste("The following analyses are for ",
+            cond1,
+            " vs ",
+            cond2,
+            ":",
+            sep = ""))
+
+DE.Args <-
+  rownames(table(SSc.gene.multiome.seurat.filtered$cell.type))
+cell.matrix.rna <- c()
+
+for (j in DE.Args) {
+  ident1 <- paste(cond1, j, sep = "__")
+  ident2 <- paste(cond2, j, sep = "__")
+  
+  if (eval(parse(
+    text = paste(
+      "(length(which(SSc.gene.multiome.seurat.filtered$cell.type_",
+      VOI,
+      " == ident1)) > 3) &
+    (length(which(SSc.gene.multiome.seurat.filtered$cell.type_",
+    VOI,
+    " == ident2)) > 3)",
+    sep = ""
+    )
+  ))) {
+    sub1 <- subset(SSc.gene.multiome.seurat.filtered, idents = ident1)
+    sub2 <-
+      subset(SSc.gene.multiome.seurat.filtered, idents = ident2)
+    adjust <- c()
+    
+    if (length(adjust.cov2 > 0)) {
+      for (i in (1:length(adjust.cov2))) {
+        eval(parse(
+          text = paste("c1 <- length(unique(sub1$", adjust.cov2[i], "))", sep = "")
+        ))
+        eval(parse(
+          text = paste("c2 <- length(unique(sub2$", adjust.cov2[i], "))", sep = "")
+        ))
+        if ((c1 != 1) & (c2 != 1)) {
+          adjust <- c(adjust, adjust.cov2[i])
+        } else{
+          cat(sprintf(
+            paste(
+              "for",
+              ident1,
+              " vs ",
+              ident2,
+              ",",
+              "\n",
+              adjust.cov2[i],
+              "can't be adjusted"
+            )
+          ))
+        }
+      }
+    
+      cat(sprintf(
+        paste(
+          "For",
+          ident1,
+          "VS",
+          ident2,
+          ",","\n", "the demographic covarites we adjusted are:",
+          adjust,
+          "\n",
+          sep = " "
+        )
+      ))
+    }
+    
+    temp.ac <-
+      FindMarkers(
+        SSc.gene.multiome.seurat.filtered,
+        ident.1 = ident1,
+        ident.2 = ident2,
+        min.pct = 0.25,
+        test.use = test_option2,
+        logfc.threshold = log2(1.2),
+        assay = "SCT",
+        latent.vars = adjust
+      )
+    
+    if (nrow(temp.ac) == 0) {
+      print(paste("for",
+                  ident1,
+                  " vs ",
+                  ident2,
+                  "no features pass threshold"))
+    }
+    else{
+      temp.ac <-
+        cbind(temp.ac,
+              paste(j, cond1, "vs", cond2, "SCT assay", sep = " "))
+      colnames(temp.ac)[6] <- "Condition"
+      temp.ac <- cbind(rownames(temp.ac), temp.ac)
+      colnames(temp.ac)[1] <- "Gene"
+      temp <- temp.ac
+      cell.matrix.rna <- rbind(cell.matrix.rna, temp)
+    }
+    
+    
+    
+  } else{
+    cat(sprintf(
+      paste(
+        "for",
+        ident1,
+        " vs ",
+        ident2,
+        ",",
+        "\n",
+        "one cell group has fewer than 3 cells"
+      )
+    ))
+  }
+  
+}
+
+write.csv(
+  cell.matrix.rna,
+  file = paste(
+    output_dir,
+    '/',
+    cond1,
+    " vs ",
+    cond2,
+    " ",
+    test_option2,
+    " 1.2_0.25_SCT.csv",
+    sep = ""
+  ),
+  row.names = F,
+  quote = F
+)
+```
+
+
+```{r,echo=F,message=F,warning=F}
+cell.matrix.rna$cell.type = sub(paste(cond1, ".*"), "", cell.matrix.rna$Condition)
+
+sig <- cell.matrix.rna %>% filter(p_val_adj < 0.05)
+
+cat(sprintf(
+  paste(
+    "The following table count the number of significant markers up in ",
+    cond1,
+    ":",
+    "\n",
+    sep = ""
+  )
+))
+
+sig.pos <- sig %>% filter(avg_log2FC > 0)
+tab1 <- sig.pos %>% count(cell.type)
+tab1 <- setDT(tab1)
+kable(tab1)
+
+write.csv(
+  sig.pos,
+  file = paste(output_dir,'/',
+    "sig_pos",
+    cond1,
+    " vs ",
+    cond2,
+    " ",
+    test_option2,
+    " 1.2_0.25_SCT.csv",
+    sep = ""
+  ),
+  row.names = F,
+  quote = F
+)
+
+
+cat(sprintf(
+  paste(
+    "The following table count the number of significant markers up in ",
+    cond2,
+    ":",
+    "\n",
+    sep = ""
+  )
+))
+
+sig.neg <- sig %>% filter(avg_log2FC < 0)
+tab2 <- sig.neg %>% count(cell.type)
+tab2 <- setDT(tab2)
+kable(tab2)
+
+write.csv(
+  sig.neg,
+  file = paste(output_dir,'/',
+    "sig_neg",
+    cond1,
+    " vs ",
+    cond2,
+    " ",
+    test_option2,
+    " 1.2_0.25_SCT.csv",
+    sep = ""
+  ),
+  row.names = F,
+  quote = F
+)
+```
+
+
+
+### peaks assay
+
+```{r,echo=F,message=F,warning=F}
+DefaultAssay(SSc.gene.multiome.seurat.filtered) <- "peaks"
+
+cell.matrix.atac <- c()
+
+for (j in DE.Args) {
+  
+  ident1 <- paste(cond1, j, sep = "__")
+  ident2 <- paste(cond2, j, sep = "__")
+  
+  if (eval(parse(
+    text = paste(
+      "(length(which(SSc.gene.multiome.seurat.filtered$cell.type_",
+      VOI,
+      " == ident1)) > 3) &
+    (length(which(SSc.gene.multiome.seurat.filtered$cell.type_",
+    VOI,
+    " == ident2)) > 3)",
+    sep = ""
+    )
+  ))) {
+    sub1 <- subset(SSc.gene.multiome.seurat.filtered, idents = ident1)
+    sub2 <-
+      subset(SSc.gene.multiome.seurat.filtered, idents = ident2)
+    adjust <- c()
+    
+    
+    if (length(adjust.cov2>0)){
+    for (i in (1:length(adjust.cov2))) {
+      eval(parse(
+        text = paste("c1 <- length(unique(sub1$", adjust.cov2[i], "))", sep = "")
+      ))
+      eval(parse(
+        text = paste("c2 <- length(unique(sub2$", adjust.cov2[i], "))", sep = "")
+      ))
+      if ((c1 != 1) & (c2 != 1)) {
+        adjust <- c(adjust, adjust.cov2[i])
+      } else{
+        cat(sprintf(
+          paste(
+            "for",
+            ident1,
+            " vs ",
+            ident2,
+            ",",
+            "\n",
+            adjust.cov2[i],
+            "can't be adjusted"
+          )
+        ))
+      }
+    }
+  }
+    
+    adjust <- c('nCount_peaks',adjust)
+    
+    cat(sprintf(
+        paste(
+          "For",
+          ident1,
+          "VS",
+          ident2,
+          ",","\n", "the demographic covarites we adjusted are:",
+          adjust,
+          "\n",
+          sep = " "
+        )
+      ))
+    
+    temp.ac <-
+      FindMarkers(
+        SSc.gene.multiome.seurat.filtered,
+        ident.1 = ident1,
+        ident.2 = ident2,
+        min.pct = 0.05,
+        test.use = test_option2,
+        logfc.threshold = log2(1.2),
+        assay = "peaks",
+        latent.vars = adjust
+      )
+    
+    if (nrow(temp.ac) == 0) {
+      print(paste("for",
+                  ident1,
+                  " vs ",
+                  ident2,
+                  "no features pass threshold"))
+    }
+    else{
+      temp.ac <-
+        cbind(temp.ac,
+              paste(j, cond1, "vs", cond2, "peaks assay", sep = " "))
+      colnames(temp.ac)[6] <- "Condition"
+      temp.ac <- cbind(rownames(temp.ac), temp.ac)
+      colnames(temp.ac)[1] <- "Chromatin"
+      temp <- temp.ac
+      cell.matrix.atac <- rbind(cell.matrix.atac, temp)
+    }
+    
+    
+    
+  } else{
+    cat(sprintf(
+      paste(
+        "for",
+        ident1,
+        " vs ",
+        ident2,
+        ",",
+        "\n",
+        "one cell group has fewer than 3 cells"
+      )
+    ))
+  }
+  
+}
+
+write.csv(
+    cell.matrix.atac,
+    file = paste(output_dir,'/',cond1," vs ",cond2," ",test_option2," 1.2_0.05_peaks.csv",sep=""),
+    row.names = F,
+    quote = F
+  )
+```
+
+
+
+
+
+
+
