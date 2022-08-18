@@ -5,7 +5,7 @@ default:
   batch_data : '/home/yuntian/multiome/Prometheus_skin0718/skin.input.csv'
   dir_cluster : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin/outs/analysis/clustering/gex/graphclust/clusters.csv'
   aggr_input : '/home/yuntian/multiome/Prometheus_skin0718/test_v8/skin.aggr.meta.csv'
-  output_dir : '/home/yuntian/multiome/version9_test/'
+  output_dir : '/home/yuntian/multiome/version9_test'
   
   dir_before_QC : '/home/yuntian/multiome/Prometheus_skin0718/before_QC.RDS'
   nCount_ATAC_min : '250'
