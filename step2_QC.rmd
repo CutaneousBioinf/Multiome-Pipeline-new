@@ -1,0 +1,361 @@
+---
+title: "Multiome QC"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+
+---
+
+This R script will do the quality control. After running, 'after_QC.RDS' will be saved for following analysis.
+
+
+```{r,echo=F,message=F,warning=F}
+library(Seurat)
+library(Signac)
+library(EnsDb.Hsapiens.v86)
+library(dplyr)
+library(ggplot2)
+library(SoupX)
+library(Matrix)
+library(scDblFinder)
+library(harmony)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(chromVAR)
+library(JASPAR2020)
+library(TFBSTools)
+library(motifmatchr)
+library(stringr)
+library(knitr)
+library(data.table)
+library(yaml)
+library(config)
+
+config = yaml.load_file("config.yml")
+Sys.setenv(R_CONFIG_ACTIVE = "default")
+nCount_ATAC_min = config::get("nCount_ATAC_min")
+nCount_ATAC_max = config::get("nCount_ATAC_max")
+nCount_RNA_min = config::get("nCount_RNA_min")
+nCount_RNA_max = config::get("nCount_RNA_max")
+MT = config::get("MT")
+nucleosomesignal = config::get("nucleosomesignal")
+TSS_enrichment = config::get("TSS_enrichment")
+qc_data = config::get("qc_data")
+output_dir = config::get("output_dir")
+dir_before_QC = paste(output_dir,'/','before_QC.RDS', sep="")
+```
+
+
+## Basic QC 
+
+```{r,echo=F,message=F,warning=F}
+gene.multiome.seurat <- readRDS(dir_before_QC)
+
+DefaultAssay(gene.multiome.seurat) <- "ATAC"
+
+gene.multiome.seurat <- NucleosomeSignal(gene.multiome.seurat)
+gene.multiome.seurat <- TSSEnrichment(gene.multiome.seurat,fast=FALSE)
+
+
+gene.multiome.seurat$high.tss <- ifelse(gene.multiome.seurat$TSS.enrichment > TSS_enrichment, paste('TSS>',TSS_enrichment,sep=""),paste('TSS<=',TSS_enrichment,sep=""))
+
+gene.multiome.seurat$nucleosome_group <- ifelse(gene.multiome.seurat$nucleosome_signal > nucleosomesignal, paste('NS > ', nucleosomesignal,sep=""), paste('NS < ', nucleosomesignal,sep=""))
+
+```
+
+Before QC, we compute some QC metrics:
+
+```{r,echo=F,message=F,warning=F,fig.height=6, fig.width=11}
+#plot matrics for each sample
+
+
+Idents(gene.multiome.seurat) <- gene.multiome.seurat$sample
+
+sample_name = unique(gene.multiome.seurat@meta.data[["sample"]])
+
+for (i in (1:length(sample_name))){
+
+  temp.sample <- subset(gene.multiome.seurat, idents = i)
+  
+  cat(sprintf("\nThe following plots are for sample %s:", i))
+  #Plot for high.tss
+  print(TSSPlot(temp.sample, group.by = 'high.tss') + NoLegend())
+  #Plot for nucleosome
+  print(FragmentHistogram(object = temp.sample, group.by = 'nucleosome_group'))
+  
+  print(VlnPlot(
+    temp.sample,
+    features = c(
+      "nCount_ATAC",
+      "nCount_RNA",
+      "percent.mt",
+      "TSS.enrichment",
+      "nucleosome_signal"
+    ),
+    ncol = 3,
+    log = TRUE,
+    pt.size = 0
+  ) + NoLegend())
+
+}
+```
+
+
+The following violin plot is for all samples together:
+
+```{r,echo=F,message=F,warning=F,fig.height=6, fig.width=13}
+print(
+  VlnPlot(
+    gene.multiome.seurat,
+    features = c(
+      "nCount_ATAC",
+      "nCount_RNA",
+      "percent.mt",
+      "TSS.enrichment",
+      "nucleosome_signal"
+    ),
+    ncol = 3,
+    log = TRUE,
+    pt.size = 0
+  ) + NoLegend()
+)
+```
+
+
+Finally we remove cells that are outliers for these QC metrics.
+
+The thresholds using for low quality cells filtering are shown in the following table:
+
+```{r,echo=F,message=F,warning=F}
+nCount_RNA_max.all = c()
+nCount_RNA_min.all = c()
+nCount_ATAC_max.all = c()
+nCount_ATAC_min.all = c()
+MT.all = c()
+temp.QC <- c()
+sample <- c()
+barcodes.check <- c()
+n.cell.before_QC <- c()
+
+
+if (qc_data){
+  
+  for (i in unique(sample_name)){
+  
+    sample <- c(sample, i)
+    
+    temp.sample <- subset(gene.multiome.seurat, idents = i)
+    orig_cellname <- colnames(temp.sample[["RNA"]])
+    n.cell.before_QC <- c(n.cell.before_QC, length(orig_cellname))
+    
+    barcodes.check <- c(barcodes.check, orig_cellname)
+    
+    quant <- quantile(temp.sample$nCount_RNA, c(0.25, 0.75))
+    nCount_RNA_max.tmp = as.numeric(quant[2] + 1.5 * (quant[2] - quant[1]))
+    nCount_RNA_max.tmp = min(nCount_RNA_max, nCount_RNA_max.tmp)
+    # nCount_RNA_min.tmp=as.numeric(quant[1]-1.5*(quant[2]-quant[1]))
+    # nCount_RNA_min.tmp=max(nCount_RNA_min,nCount_RNA_min.tmp)
+    nCount_RNA_min.tmp = nCount_RNA_min
+    
+    nCount_RNA_max.all = c(nCount_RNA_max.all, nCount_RNA_max.tmp)
+    nCount_RNA_min.all = c(nCount_RNA_min.all, nCount_RNA_min.tmp)
+    
+    quant <- quantile(temp.sample$nCount_ATAC, c(0.25, 0.75))
+    nCount_ATAC_max.tmp = as.numeric(quant[2] + 1.5 * (quant[2] - quant[1]))
+    nCount_ATAC_max.tmp = min(nCount_ATAC_max, nCount_ATAC_max.tmp)
+    # nCount_ATAC_min.tmp=as.numeric(quant[1]-1.5*(quant[2]-quant[1]))
+    # nCount_ATAC_min.tmp=max(nCount_ATAC_min,nCount_ATAC_min.tmp)
+    nCount_ATAC_min.tmp = nCount_ATAC_min
+    
+    nCount_ATAC_max.all = c(nCount_ATAC_max.all, nCount_ATAC_max.tmp)
+    nCount_ATAC_min.all = c(nCount_ATAC_min.all, nCount_ATAC_min.tmp)
+    
+    #quant<-quantile(temp.sample$percent.mt,c(0.25,0.75))
+    #MT.tmp<-as.numeric(quant[2]+1.5*(quant[2]-quant[1]))
+    MT.tmp <- MT
+  
+  MT.all <- c(MT.all, MT.tmp)
+  
+  temp.sample <-
+    subset(
+      x = temp.sample,
+      subset = nCount_ATAC < nCount_ATAC_max.tmp &
+        nCount_ATAC > nCount_ATAC_min.tmp &
+        nCount_RNA < nCount_RNA_max.tmp &
+        nCount_RNA > nCount_RNA_min.tmp &    percent.mt < MT.tmp
+    )
+  
+  after_cellname <- colnames(temp.sample[["RNA"]])
+  
+  temp.QC <- c(temp.QC, as.character(orig_cellname %in% after_cellname))
+  
+  }
+  
+  tab_thresholds <- cbind(sample, nCount_RNA_min.all)
+  tab_thresholds <- as.data.frame(tab_thresholds)
+  tab_thresholds$nCount_RNA_max <- nCount_RNA_max.all
+  tab_thresholds$nCount_ATAC_min <- nCount_ATAC_min.all
+  tab_thresholds$nCount_ATAC_max <- nCount_ATAC_max.all
+  tab_thresholds$mt_percent <- MT.all
+  #tab_thresholds$nucleosome_signal<-rep(nucleosomesignal,length(sample))
+  #tab_thresholds$TSS_enrichment<-rep(TSS_enrichment,length(sample))
+  tab_thresholds$n.cell.before_QC <- n.cell.before_QC
+  
+  tab_thresholds = tab_thresholds[order(tab_thresholds$sample), ]
+  n.cell.before_QC <- tab_thresholds$n.cell.before_QC
+  tab_thresholds <- tab_thresholds[, -7]
+  rownames(tab_thresholds) <- NULL
+  colnames(tab_thresholds) <-
+    c("sample",
+      "RNA_min",
+      "RNA_max",
+      "ATAC_min",
+      "ATAC_max",
+      "mt percent")
+  tab_thresholds <- setDT(tab_thresholds)
+  
+
+  ref <- cbind(barcodes.check, temp.QC)
+  ref <- as.data.frame(ref)
+  ref2 <- as.data.frame(colnames(gene.multiome.seurat))
+  colnames(ref2) <- "barcodes.check"
+  ref <- merge(x = ref, y = ref2, by = "barcodes.check")
+
+#check the order of barcodes
+#all(colnames(gene.multiome.seurat)==ref$barcodes.check)
+
+  gene.multiome.seurat$QC <- ref$temp.QC
+
+  gene.multiome.seurat.filtered <- subset(x = gene.multiome.seurat,  subset = QC==TRUE)
+  
+  kable(tab_thresholds)
+  
+}
+
+```
+
+
+```{r,echo=F,message=F,warning=F}
+if (qc_data==FALSE) {
+  #if qc_data=F then we can use user_defined values to filter out low quality data
+  gene.multiome.seurat.filtered <-
+    subset(
+      x = gene.multiome.seurat,
+      subset = nCount_ATAC < nCount_ATAC_max &
+        nCount_ATAC > nCount_ATAC_min &
+        nCount_RNA < nCount_RNA_max &
+        nCount_RNA > nCount_RNA_min &    percent.mt < MT
+    )
+  
+  n <- length(unique(sample_name))
+  sample <- seq(1, n)
+  n.cell.before_QC <- c()
+  for (i in (1:n)) {
+    temp.sample <- subset(gene.multiome.seurat, idents = i)
+    orig_cellname <- colnames(temp.sample[["RNA"]])
+    n.cell.before_QC <- c(n.cell.before_QC, length(orig_cellname))
+  }
+  nCount_RNA_min.all <- rep(nCount_RNA_min, n)
+  tab_thresholds <- cbind(sample, nCount_RNA_min.all)
+  tab_thresholds <- as.data.frame(tab_thresholds)
+  tab_thresholds$nCount_RNA_max <- rep(nCount_RNA_max, n)
+  tab_thresholds$nCount_ATAC_min <- rep(nCount_ATAC_min, n)
+  tab_thresholds$nCount_ATAC_max <- rep(nCount_ATAC_max, n)
+  tab_thresholds$mt_percent <- rep(MT, n)
+  rownames(tab_thresholds) <- NULL
+  colnames(tab_thresholds) <-
+    c("sample",
+      "RNA_min",
+      "RNA_max",
+      "ATAC_min",
+      "ATAC_max",
+      "mt percent")
+  tab_thresholds <- setDT(tab_thresholds)
+  kable(tab_thresholds)
+
+}
+
+
+  
+print(paste("After Quality control the number of cells:", as.numeric(ncol(gene.multiome.seurat.filtered)),"unique RNA reads:",as.integer(sum(gene.multiome.seurat.filtered$nCount_RNA))))
+
+
+print(paste("After Quality control the number of cells:", as.numeric(ncol(gene.multiome.seurat.filtered)),"unique ATAC reads:",as.integer(sum(gene.multiome.seurat.filtered$nCount_ATAC))))
+```
+
+
+```{r,echo=F,message=F,warning=F}
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+Idents(gene.multiome.seurat.filtered) <- gene.multiome.seurat.filtered$sample
+n.cell<-c()
+n.reads_RNA<-c()
+n.reads_ATAC<-c()
+sample_id<-c()
+tss.mode<-c()
+#number of cells which nucleosome_signal<=4
+n.ns.less4<-c()
+#number of cells which TSS.enrichment>2
+n.tss.greater2<-c()
+
+for (i in (1:length(sample_name))){
+
+  tmp<-subset(gene.multiome.seurat.filtered, idents=i)
+  n.cell<-c(n.cell,as.numeric(ncol(tmp)))
+  n.reads_RNA<-c(n.reads_RNA,as.integer(sum(tmp$nCount_RNA)))
+  n.reads_ATAC<-c(n.reads_ATAC,as.integer(sum(tmp$nCount_ATAC)))
+  sample_id<-c(sample_id,i)
+  #tss.mode<-c(tss.mode,getmode(tmp$TSS.enrichment))
+  n.ns.less4<-c(n.ns.less4,length(which(tmp$nucleosome_signal<=4)))
+  n.tss.greater2<-c(n.tss.greater2,length(which(tmp$TSS.enrichment>2)))
+}
+
+tab_after_qc<-cbind(sample_id,n.cell.before_QC)
+tab_after_qc<-as.data.frame(tab_after_qc)
+tab_after_qc$n.cell<-n.cell
+tab_after_qc$n.reads_RNA<-n.reads_RNA
+tab_after_qc$n.reads_ATAC<-n.reads_ATAC
+tab_after_qc$delete_ratio<-(n.cell.before_QC-n.cell)/n.cell.before_QC
+#tab_after_qc$tss.mode<-tss.mode
+#tab_after_qc$n.tss.greater2<-n.tss.greater2
+#tab_after_qc$n.ns.less4<-n.ns.less4
+
+rownames(tab_after_qc)<-NULL
+#(tab_after_qc)<-c("sample","#cell before QC","#cell","RNA reads","ATAC reads","delete ratio","tss.mode","#TSS>2","#NS<=4")
+colnames(tab_after_qc)<-c("sample","#cell before QC","#cell","RNA reads","ATAC reads","delete ratio")
+tab_after_qc<-setDT(tab_after_qc)
+kable(tab_after_qc)
+```
+
+
+```{r,echo=F,message=F,warning=F,fig.height=6, fig.width=11}
+for (i in (1:length(sample_name))){
+  
+  temp.sample<-subset(gene.multiome.seurat.filtered,idents=i)
+  
+  cat(sprintf("\nFor sample %s:",i))
+  
+  print(VlnPlot(temp.sample, features = c("nCount_ATAC", "nCount_RNA","percent.mt", "TSS.enrichment", "nucleosome_signal"), ncol = 3, log = TRUE, pt.size = 0) + NoLegend())
+}  
+```
+
+
+The following violin plot is for all samples together after QC:
+
+```{r,echo=F,message=F,warning=F,fig.height=6, fig.width=13}
+
+print(VlnPlot(gene.multiome.seurat.filtered, features = c("nCount_ATAC", "nCount_RNA","percent.mt", "TSS.enrichment", "nucleosome_signal"), ncol = 3, log = TRUE, pt.size = 0) + NoLegend())
+
+saveRDS(gene.multiome.seurat.filtered,file=paste(output_dir,'/','after_QC.RDS', sep=""))
+```
+
+
+
+
+
+
+
+
+
+
+
