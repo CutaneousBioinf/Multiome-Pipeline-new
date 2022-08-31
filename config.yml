@@ -7,7 +7,7 @@ default:
   aggr_input : '/home/yuntian/multiome/Prometheus_skin0718/test_v8/skin.aggr.meta.csv'
   output_dir : '/home/yuntian/multiome/version9_test'
   
-  dir_before_QC : '/home/yuntian/multiome/Prometheus_skin0718/before_QC.RDS'
+  
   nCount_ATAC_min : '250'
   nCount_ATAC_max : '25000'
   nCount_RNA_min : '250'
@@ -17,18 +17,18 @@ default:
   TSS_enrichment : '2'
   qc_data: 'TRUE'
   
-  dir_after_QC : '/home/yuntian/multiome/Prometheus_skin0718/after_QC.RDS'
+
   dir_macs2 : '/home/alextsoi/Software/miniconda3/bin/macs2'
   dir_annotations : '/home/yuntian/multiome/Prometheus_skin0718/annotations.RDS'
   
-  dir_after_link_peaks : '/home/yuntian/multiome/Prometheus_skin0718/after_link_peaks.RDS'
+
   dir_celltype : '/home/yuntian/multiome/Prometheus_skin0718/prometheus_skin_july_annotations.csv'
   adjust.cov : 'Age'
   test_option1 : 'LR'
   cell_type_order : 'Keratinized Keratinocytes,Differentiated Keratinocytes,Basal Keratinocytes,Fibroblasts,Pericytes,Melanocytes,Myofibroblasts,Nerve Cells,Eccrine Cells,Myeloid Cells,Monocytes,Mast Cells,T Cells,Endothelial Cells,L Endothelial Cells,Smooth Muscle Cells,B Cells,Langerhans Cells'
   condition_order : 'Scleroderma,Control'
   
-  dir_final : '/home/yuntian/multiome/Prometheus_skin0718/step4_part1/final.RDS'
+
   test_option2 : 'LR'
   VOI : 'ILD'
   adjust.cov2 : 'Age'
