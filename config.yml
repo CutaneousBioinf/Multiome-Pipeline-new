@@ -9,13 +9,13 @@ default:
   output_dir : '/home/yuntian/multiome/version9_test'
   
 #all the input argument needed for Step2_QC
-  nCount_ATAC_min : '250'
-  nCount_ATAC_max : '25000'
-  nCount_RNA_min : '250'
-  nCount_RNA_max : '25000'
-  MT : '25'
-  nucleosomesignal : '4'
-  TSS_enrichment : '2'
+  nCount_ATAC_min : 250
+  nCount_ATAC_max : 25000
+  nCount_RNA_min : 250
+  nCount_RNA_max : 25000
+  MT : 25
+  nucleosomesignal : 4
+  TSS_enrichment : 2
   qc_data: 'TRUE'
   
 #all the input argument needed for Step3_batch_correction
