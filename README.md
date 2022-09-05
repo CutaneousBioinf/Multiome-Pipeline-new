@@ -6,7 +6,49 @@ Run the following sample bash code for each step, please note that all the input
 
 ## Config file:
 
+The example config.yml should be look like this: 
+
 ```{bash}
+default:
+#all the input argument needed for Step1_Pre-processing
+  dir_gene : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin/outs/filtered_feature_bc_matrix.h5'
+  dir_ATAC : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin/outs/atac_fragments.tsv.gz'
+  forceOption : 'TRUE'
+  batch_data : '/home/yuntian/multiome/Prometheus_skin0718/skin.input.csv'
+  dir_cluster : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin/outs/analysis/clustering/gex/graphclust/clusters.csv'
+  aggr_input : '/home/yuntian/multiome/Prometheus_skin0718/test_v8/skin.aggr.meta.csv'
+  output_dir : '/home/yuntian/multiome/version9_test'
+  
+#all the input argument needed for Step2_QC
+  nCount_ATAC_min : 250
+  nCount_ATAC_max : 25000
+  nCount_RNA_min : 250
+  nCount_RNA_max : 25000
+  MT : 25
+  nucleosomesignal : 4
+  TSS_enrichment : 2
+  qc_data: 'TRUE'
+  
+#all the input argument needed for Step3_batch_correction
+  dir_macs2 : '/home/alextsoi/Software/miniconda3/bin/macs2'
+ 
+  
+#all the input argument needed for Step4_with_cell_type_part1
+  dir_celltype : '/home/yuntian/multiome/Prometheus_skin0718/prometheus_skin_july_annotations.csv'
+  adjust.cov : 'Age'
+  test_option1 : 'LR'
+  cell_type_order : 'Keratinized Keratinocytes,Differentiated Keratinocytes,Basal Keratinocytes,Fibroblasts,Pericytes,Melanocytes,Myofibroblasts,Nerve Cells,Eccrine Cells,Myeloid Cells,Monocytes,Mast Cells,T Cells,Endothelial Cells,L Endothelial Cells,Smooth Muscle Cells,B Cells,Langerhans Cells'
+  condition_order : 'Scleroderma,Control'
+  
+#all the input argument needed for Step4_with_cell_type_part2
+  test_option2 : 'LR'
+  VOI : 'ILD'
+  adjust.cov2 : 'Age'
+  cond1 : 'POS'
+  cond2 : 'NEG'
+
+```
+
 --dir_gene: the directory of filtered_feature_bc_matrix.h5
 
 --dir_ATAC: the directory of fragment files, *atac_fragments.tsv.gz*
@@ -69,7 +111,7 @@ Please note that we assume that after the 6th column, the rest of the columns st
 
 --cond2: comparison condition 2
 
-```
+
 
 ## Step 1: Pre-processing using cellranger
 
