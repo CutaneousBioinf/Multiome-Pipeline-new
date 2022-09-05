@@ -1,5 +1,5 @@
 # Multiome-Pipeline
-This pipeline comprises 4 steps as can be seen below. The `output_dir` option in the bash code specifies the directory where the output pdf files will be stored
+This pipeline comprises 4 steps as can be seen below. The `output_dir` option in the bash code specifies the directory where the output pdf files will be stored, and the `dir_config` input argument specifies the path of config.yml
 
 ## To use the pipeline:
 Run the following sample bash code for each step, please note that all the input arguments should be listed in the config.yml.
