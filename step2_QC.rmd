@@ -2,13 +2,32 @@
 title: "Multiome QC"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
-
+params:
+  dir_config: F
 ---
 
 This R script will do the quality control. After running, 'after_QC.RDS' will be saved for following analysis.
 
 
 ```{r,echo=F,message=F,warning=F}
+library(yaml)
+library(config)
+
+dir <- params$dir_config
+con <- file(dir)
+config <- yaml.load(readLines(con))
+
+nCount_ATAC_min = config$default$nCount_ATAC_min
+nCount_ATAC_max = config$default$nCount_ATAC_max
+nCount_RNA_min = config$default$nCount_RNA_min
+nCount_RNA_max = config$default$nCount_RNA_max
+MT = config$default$MT
+nucleosomesignal = config$default$nucleosomesignal
+TSS_enrichment = config$default$TSS_enrichment
+qc_data = config$default$qc_data
+output_dir = config$default$output_dir
+dir_before_QC = paste(output_dir,'/','before_QC.RDS', sep="")
+
 library(Seurat)
 library(Signac)
 library(EnsDb.Hsapiens.v86)
@@ -26,21 +45,6 @@ library(motifmatchr)
 library(stringr)
 library(knitr)
 library(data.table)
-library(yaml)
-library(config)
-
-config = yaml.load_file("config.yml")
-Sys.setenv(R_CONFIG_ACTIVE = "default")
-nCount_ATAC_min = config::get("nCount_ATAC_min")
-nCount_ATAC_max = config::get("nCount_ATAC_max")
-nCount_RNA_min = config::get("nCount_RNA_min")
-nCount_RNA_max = config::get("nCount_RNA_max")
-MT = config::get("MT")
-nucleosomesignal = config::get("nucleosomesignal")
-TSS_enrichment = config::get("TSS_enrichment")
-qc_data = config::get("qc_data")
-output_dir = config::get("output_dir")
-dir_before_QC = paste(output_dir,'/','before_QC.RDS', sep="")
 ```
 
 
@@ -65,7 +69,6 @@ Before QC, we compute some QC metrics:
 
 ```{r,echo=F,message=F,warning=F,fig.height=6, fig.width=11}
 #plot matrics for each sample
-
 
 Idents(gene.multiome.seurat) <- gene.multiome.seurat$sample
 
@@ -102,6 +105,14 @@ for (i in (1:length(sample_name))){
 The following violin plot is for all samples together:
 
 ```{r,echo=F,message=F,warning=F,fig.height=6, fig.width=13}
+# sample_order = c()
+# 
+# for (i in (1:length(unique(gene.multiome.seurat$sample)))){
+#   sample_order=c(sample_order,i)
+# }
+# 
+# gene.multiome.seurat$sample <- factor(x = gene.multiome.seurat$sample, levels = sample_order)
+
 print(
   VlnPlot(
     gene.multiome.seurat,
@@ -117,6 +128,8 @@ print(
     pt.size = 0
   ) + NoLegend()
 )
+
+saveRDS(gene.multiome.seurat,file=paste(output_dir,'/','QC_test.RDS', sep=""))
 ```
 
 
@@ -217,7 +230,7 @@ if (qc_data){
   ref <- as.data.frame(ref)
   ref2 <- as.data.frame(colnames(gene.multiome.seurat))
   colnames(ref2) <- "barcodes.check"
-  ref <- merge(x = ref, y = ref2, by = "barcodes.check")
+  ref <- base::merge(x = ref, y = ref2, by = "barcodes.check")
 
 #check the order of barcodes
 #all(colnames(gene.multiome.seurat)==ref$barcodes.check)

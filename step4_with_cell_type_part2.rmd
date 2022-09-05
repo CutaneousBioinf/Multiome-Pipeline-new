@@ -2,10 +2,26 @@
 title: "Multiome Analysis with Celltype"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
+params:
+  dir_config: F
 ---
 
-
 ```{r,echo=F,message=F,warning=F}
+library(yaml)
+library(config)
+
+dir <- params$dir_config
+con <- file(dir)
+config <- yaml.load(readLines(con))
+
+test_option2 = config$default$test_option2
+VOI = config$default$VOI
+adjust.cov2 = config$default$adjust.cov2
+cond1 = config$default$cond1
+cond2 = config$default$cond2
+output_dir = config$default$output_dir
+dir_final = paste(output_dir,'/','final.RDS', sep="")
+
 library(Seurat)
 library(Signac)
 library(EnsDb.Hsapiens.v86)
@@ -18,18 +34,6 @@ library(gridExtra)
 library(grid)
 library(knitr)
 library(data.table)
-library(yaml)
-library(config)
-
-config = yaml.load_file("config.yml")
-Sys.setenv(R_CONFIG_ACTIVE = "default")
-test_option2 = config::get("test_option2")
-VOI = config::get("VOI")
-adjust.cov2 = config::get("adjust.cov2")
-cond1 = config::get("cond1")
-cond2 = config::get("cond2")
-output_dir = config::get("output_dir")
-dir_final = paste(output_dir,'/','final.RDS', sep="")
 ```
 
 ```{r,echo=F,message=F,warning=F}
@@ -205,6 +209,24 @@ write.csv(
 cell.matrix.rna$cell.type = sub(paste(cond1, ".*"), "", cell.matrix.rna$Condition)
 
 sig <- cell.matrix.rna %>% filter(p_val_adj < 0.05)
+
+write.csv(
+  sig,
+  file = paste(output_dir,'/',
+    "sig_",
+    cond1,
+    " vs ",
+    cond2,
+    " ",
+    test_option2,
+    " 1.2_0.25_SCT.csv",
+    sep = ""
+  ),
+  row.names = F,
+  quote = F
+)
+
+
 
 cat(sprintf(
   paste(

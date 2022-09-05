@@ -2,7 +2,8 @@
 title: "Multiome Preprocessing"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
-
+params:
+  dir_config: F
 ---
 
 This R script will do the pre-processing covering ambient RNA removal, adding ATAC-seq data, and doublet removal. There are five required inputs: RNA-seq data and ATAC-seq data, forceOption, sample info file, and clustering info from cellranger. After running, two RDS 'before_QC.RDS' and 'annotations' will be saved for following analysis.
@@ -12,15 +13,16 @@ This R script will do the pre-processing covering ambient RNA removal, adding AT
 ```{r,echo=F,warning=F}
 library(yaml)
 library(config)
-config = yaml.load_file("config.yml")
-Sys.setenv(R_CONFIG_ACTIVE = "default")
-dir_gene = config::get("dir_gene")
-dir_ATAC = config::get("dir_ATAC")
-forceOption = config::get("forceOption")
-batch_data = config::get("batch_data")
-dir_cluster = config::get("dir_cluster")
-aggr_input = config::get("aggr_input")
-output_dir = config::get("output_dir")
+dir <- params$dir_config
+con <- file(dir)
+config <- yaml.load(readLines(con))
+dir_gene = config$default$dir_gene
+dir_ATAC = config$default$dir_ATAC
+forceOption = config$default$forceOption
+batch_data = config$default$batch_data
+dir_cluster = config$default$dir_cluster
+aggr_input = config$default$aggr_input
+output_dir = config$default$output_dir
 aggr <- read.csv(aggr_input)
 temp <- read.csv(batch_data)
 if (aggr[, 1] != temp[, 1]) {
