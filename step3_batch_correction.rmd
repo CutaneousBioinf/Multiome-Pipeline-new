@@ -17,10 +17,10 @@ con <- file(dir)
 config <- yaml.load(readLines(con))
 
 dir_macs2= config$default$dir_macs2
-dir_annotations= config$default$dir_annotations
 dir_ATAC = config$default$dir_ATAC
 output_dir = config$default$output_dir
 dir_after_QC = paste(output_dir,'/','after_QC.RDS', sep="")
+dir_annotations = paste(output_dir,'/','annotations.RDS', sep="")
 
 library(Seurat)
 library(Signac)
