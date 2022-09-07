@@ -72,8 +72,8 @@ for (i in unique(gene.sample)){
 
 batch_info <- strsplit(colnames(gene.multiome$`Gene Expression`), split = "-")
 batch_info <- as.data.frame(matrix(unlist(batch_info), ncol = 2, byrow = T))
-regexp <- "[[:digit:]]+"
-temp$batch <- str_extract(temp$Batch, regexp)
+#regexp <- "[[:digit:]]+"
+#temp$batch <- str_extract(temp$Batch, regexp)
 Sample <- seq(1:nrow(temp))
 temp2 <- cbind(Sample, temp)
 temp2 <- setDT(temp2)
