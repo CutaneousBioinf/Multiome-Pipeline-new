@@ -20,6 +20,8 @@ adjust.cov2 = config$default$adjust.cov2
 cond1 = config$default$cond1
 cond2 = config$default$cond2
 output_dir = config$default$output_dir
+input = config$default$batch_data 
+input = read.csv(input)
 dir_final = paste(output_dir,'/','final.RDS', sep="")
 
 library(Seurat)
@@ -48,6 +50,15 @@ adjust.cov2 <- unlist(strsplit(adjust.cov2, ","))
 
 ```{r,echo=F,message=F,warning=F,fig.height=26, fig.width=32}
 DefaultAssay(gene.multiome.seurat.filtered) <- "SCT"
+
+if ("Age" %in% colnames(input)){
+  gene.multiome.seurat.filtered$Age <- as.numeric(gene.multiome.seurat.filtered$Age)
+}
+
+if ("Sex" %in% colnames(input)){
+  gene.multiome.seurat.filtered$Sex <- as.factor(gene.multiome.seurat.filtered$Sex)
+}
+
 
 eval(parse(text = paste(
     "gene.multiome.seurat.filtered$cell.type_",

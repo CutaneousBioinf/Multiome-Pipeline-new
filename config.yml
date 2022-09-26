@@ -1,12 +1,12 @@
 default:
 #all the input argument needed for Step1_Pre-processing
-  dir_gene : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin/outs/filtered_feature_bc_matrix.h5'
-  dir_ATAC : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin/outs/atac_fragments.tsv.gz'
+  dir_gene : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin_newATAC/outs/filtered_feature_bc_matrix.h5'
+  dir_ATAC : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin_newATAC/outs/atac_fragments.tsv.gz'
   forceOption : 'TRUE'
-  batch_data : '/home/yuntian/multiome/Prometheus_skin0718/skin.input.csv'
-  dir_cluster : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin/outs/analysis/clustering/gex/graphclust/clusters.csv'
-  aggr_input : '/home/yuntian/multiome/Prometheus_skin0718/test_v8/skin.aggr.meta.csv'
-  output_dir : '/home/yuntian/multiome/version9_test'
+  batch_data : '/home/yuntian/multiome/Prometheus_skin_newATAC/skin.input.correct.csv'
+  dir_cluster : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/results/SSc_multiome_skin_newATAC/outs/analysis/clustering/gex/graphclust/clusters.csv'
+  aggr_input : '/home/yuntian/net/psoriasis/psorgenom/alextsoi/Prometheus_multiome/analysis.aggr/data/skin.aggr.meta.new.csv'
+  output_dir : '/home/yuntian/multiome/Prometheus_skin_newATAC'
   
 #all the input argument needed for Step2_QC
   nCount_ATAC_min : 250
@@ -20,17 +20,18 @@ default:
   
 #all the input argument needed for Step3_batch_correction
   dir_macs2 : '/home/alextsoi/Software/miniconda3/bin/macs2'
+ 
   
 #all the input argument needed for Step4_with_cell_type_part1
-  dir_celltype : '/home/yuntian/multiome/Prometheus_skin0718/prometheus_skin_july_annotations.csv'
-  adjust.cov : 'Age'
+  dir_celltype : '/home/yuntian/multiome/Prometheus_skin_newATAC/prometheus_skin_annotations.csv'
+  adjust.cov : 'Age,Sex'
   test_option1 : 'LR'
-  cell_type_order : 'Keratinized Keratinocytes,Differentiated Keratinocytes,Basal Keratinocytes,Fibroblasts,Pericytes,Melanocytes,Myofibroblasts,Nerve Cells,Eccrine Cells,Myeloid Cells,Monocytes,Mast Cells,T Cells,Endothelial Cells,L Endothelial Cells,Smooth Muscle Cells,B Cells,Langerhans Cells'
+  cell_type_order : 'Keratinized Keratinocytes,Differentiated Keratinocytes,Basal Keratinocytes,Fibroblasts,Pericytes,Melanocytes,Nerve Cells,Eccrine Cells,Myeloid Cells,Monocytes,Mast Cells,T Cells,Endothelial Cells,L Endothelial Cells,Smooth Muscle Cells,B Cells,Langerhans Cells,Follicle Cells'
   condition_order : 'Scleroderma,Control'
   
 #all the input argument needed for Step4_with_cell_type_part2
   test_option2 : 'LR'
-  VOI : 'ILD'
-  adjust.cov2 : 'Age'
-  cond1 : 'POS'
-  cond2 : 'NEG'
+  VOI : 'Condition'
+  adjust.cov2 : 'Age,Sex'
+  cond1 : 'Scleroderma'
+  cond2 : 'Control'
