@@ -6,7 +6,7 @@ Run the following sample bash code for each step, please note that all the input
 
 ## Config file:
 
-The example config.yml should be look like this: 
+The example config.yml should look like this: 
 
 ```{bash}
 default:
