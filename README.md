@@ -171,5 +171,5 @@ This R script will find marker genes for comparison between different conditions
 
 5. **cond1 vs cond2 test_option 1.2_0.05_peaks.csv**: differentially accessible peaks found from specified condition comparison within each cell type. Please note those markers satisfy "min.pct > 0.05" and "log2FC > log2(1.2)", but has not been filtered by "adjusted p value". e.g. LESIONAL vs CTRL LR 1.2_0.05_peaks.csv means we utilize a logistic regression framework to determine differentially accessible peaks
 ```
-Please note that in all of the test results, if the *avg_log2FC > 0*, it means this gene is up in *cond1*, and if *avg_log2FC < 0*, it means this gene is down in *cond1*.
+Please note that in all of the test results, if the 'avg_log2FC > 0', it means this gene is up in 'cond1', and if 'avg_log2FC < 0', it means this gene is down in 'cond1'.
 
