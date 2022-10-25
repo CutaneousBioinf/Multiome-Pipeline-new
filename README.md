@@ -138,7 +138,7 @@ This R script will do the peak recalling, batch correction and process cluster m
 
 This R script will do the UMAP, cell type proportion histogram, find top marker genes for each cell type with feature plot and dotplot, feature plots for marker genes based on prior knowledge (skin_cluster_marker_panel.png), and motif analysis.
 
-`/usr/bin/Rscript -e "rmarkdown::render('/home/yuntian/multiome/version9/Step4_with_cell_type_part1.rmd',params=list(dir_config = '/home/yuntian/multiome/version9_test/config.yml'),clean=TRUE, output_dir = '/home/yuntian/multiome/version9_test/')"`
+`/usr/bin/Rscript -e "rmarkdown::render('/home/yuntian/multiome/version9/step4_with_cell_type_part1.rmd',params=list(dir_config = '/home/yuntian/multiome/version9_test/config.yml'),clean=TRUE, output_dir = '/home/yuntian/multiome/version9_test/')"`
 
 #### output files (saved files besides saved RDS files and pdf document)
 
@@ -156,7 +156,7 @@ This R script will do the UMAP, cell type proportion histogram, find top marker 
 
 This R script will find marker genes for comparison between different conditions of each cell type.
 
-`/usr/bin/Rscript -e "rmarkdown::render('/home/yuntian/multiome/version9/Step4_with_cell_type_part2.rmd',params=list(dir_config = '/home/yuntian/multiome/version9_test/config.yml'),clean=TRUE, output_dir = '/home/yuntian/multiome/version9_test/')"`
+`/usr/bin/Rscript -e "rmarkdown::render('/home/yuntian/multiome/version9/step4_with_cell_type_part2.rmd',params=list(dir_config = '/home/yuntian/multiome/version9_test/config.yml'),clean=TRUE, output_dir = '/home/yuntian/multiome/version9_test/')"`
 
 #### output files (saved files besides saved RDS files and pdf document)
 
