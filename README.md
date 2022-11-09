@@ -47,7 +47,6 @@ default:
   cond1 : 'Scleroderma'
   cond2 : 'Control'
 
-
 ```
 
 --dir_gene: the directory of filtered_feature_bc_matrix.h5
@@ -56,7 +55,7 @@ default:
 
 --forceOption: Should we allow very high contamination fractions to be used or not, usually when we use the clustering info from cellranger, we won't have this problem, but alwasys set it as TRUE to make sure the pipeline could run smoothly
 
---batch_data: sample info file, including *Sample_ID, Core_Sample_Name, Condition, Tissue, Batch, Sex, Race, Age*, if the last three demographic variables are not available, don't include them in the csv file. The *Core_Sample_Name* doesn't need to follow a particular namining rules. The **Sample_ID** (1st column) should match the **library_id** you used in the upstream CellRanger aggr run, both order and name. Please see the following picture as an example: 
+--batch_data: sample info file, including *Sample_ID, Core_Sample_Name, Condition, Tissue, Batch, Individual, Sex, Race, Age*, if the last three demographic variables are not available, don't include them in the csv file. The *Core_Sample_Name* doesn't need to follow a particular namining rules. The **Sample_ID** (1st column) should match the **library_id** you used in the upstream CellRanger aggr run, both order and name. Please see the following picture as an example: 
 
 *aggr input file:*
 
